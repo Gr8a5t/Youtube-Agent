@@ -6,8 +6,8 @@ async function test() {
     const cookieString = loadCookies();
     const yt = await Innertube.create({ cookie: cookieString });
     
-    console.log('Fetching video info using ANDROID client...');
-    const info = await yt.getInfo('8ZCMDvkusKI', 'ANDROID');
+    console.log('Fetching video info using WEB client...');
+    const info = await yt.getInfo('8ZCMDvkusKI', 'WEB');
     
     if (info.captions) {
         console.log('Captions found in video info!');
@@ -27,6 +27,7 @@ async function test() {
             } : undefined;
             const url = track.base_url;
             const response = await fetch(url, { headers });
+            console.log('Fetch status:', response.status);
             
             if (!response.ok) {
                 console.error(`Fetch failed with status ${response.status}`);

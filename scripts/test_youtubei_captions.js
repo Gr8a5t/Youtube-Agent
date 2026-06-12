@@ -6,8 +6,8 @@ async function test() {
     const cookieString = loadCookies();
     const yt = await Innertube.create({ cookie: cookieString });
     
-    console.log('Fetching video info...');
-    const info = await yt.getInfo('8ZCMDvkusKI');
+    console.log('Fetching video info using ANDROID client...');
+    const info = await yt.getInfo('8ZCMDvkusKI', 'ANDROID');
     
     if (info.captions) {
         console.log('Captions found in video info!');
@@ -21,6 +21,10 @@ async function test() {
             console.log('Base URL:', track.base_url);
             
             // The caption track object has a base_url we can fetch directly!
+            const headers = cookieString ? {
+                'Cookie': cookieString,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            } : undefined;
             const url = track.base_url;
             const response = await fetch(url, { headers });
             

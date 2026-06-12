@@ -15,9 +15,26 @@ let ytdlpInstance: YtDlp | null = null;
 
 function getYtDlp(): YtDlp {
   if (!ytdlpInstance) {
-    ytdlpInstance = new YtDlp({
+    const opts: any = {
       ffmpegPath: ffmpegPath ?? undefined,
-    });
+    };
+
+    const envCookiesPath = process.env.YOUTUBE_COOKIES_PATH;
+    const localCookiesTxt = resolve(process.cwd(), 'cookies.txt');
+    const dotCookiesTxt = resolve(process.cwd(), '.cookies.txt');
+
+    if (envCookiesPath && existsSync(envCookiesPath)) {
+      console.log(`[yt-dlp] Loading cookies from environment path: ${envCookiesPath}`);
+      opts.cookies = envCookiesPath;
+    } else if (existsSync(localCookiesTxt)) {
+      console.log('[yt-dlp] Found and loading cookies.txt');
+      opts.cookies = localCookiesTxt;
+    } else if (existsSync(dotCookiesTxt)) {
+      console.log('[yt-dlp] Found and loading .cookies.txt');
+      opts.cookies = dotCookiesTxt;
+    }
+
+    ytdlpInstance = new YtDlp(opts);
   }
   return ytdlpInstance;
 }

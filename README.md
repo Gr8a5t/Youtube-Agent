@@ -79,6 +79,21 @@ Or connect via SSE (Server-Sent Events) by running the server with the `--sse` f
 
 ---
 
+## 🍪 Bypassing YouTube "Sign in to confirm you're not a bot" Errors
+
+YouTube frequently blocks requests originating from cloud hosting servers (like Render or AWS), resulting in an error asking you to sign in. 
+
+To bypass this verification check, you can pass your YouTube session cookies to the server:
+
+1. **Export Cookies:**
+   * Install a browser extension like **Get cookies.txt LOCALLY** (Chrome/Firefox).
+   * Open YouTube, log in, and use the extension to export your cookies in **Netscape format**.
+2. **Configure on Server:**
+   * **Local Development:** Save the exported cookies file as `cookies.txt` or `.cookies.txt` in the root of your project directory. The backend will automatically detect and load it.
+   * **Render/Cloud Deployment:** Define a `YOUTUBE_COOKIES_PATH` environment variable on your Render service dashboard pointing to a path containing the cookie file, or securely copy the file to the deployment environment.
+
+---
+
 ## 📜 License & Attributions
 
 Licensed under the [Apache License 2.0](LICENSE). 

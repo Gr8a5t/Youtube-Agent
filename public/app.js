@@ -1093,7 +1093,13 @@ async function saveCookiesToServer() {
       body: JSON.stringify({ cookieString })
     });
     
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      throw new Error(`Server returned status ${response.status} (non-JSON response). The server may still be deploying/restarting. Please wait a minute and try again.`);
+    }
+
     if (!response.ok) {
       throw new Error(data.error || 'Failed to save cookies');
     }
@@ -1116,7 +1122,13 @@ async function clearCookies() {
       method: 'DELETE'
     });
     
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      throw new Error(`Server returned status ${response.status} (non-JSON response). The server may still be deploying/restarting. Please wait a minute and try again.`);
+    }
+
     if (!response.ok) {
       throw new Error(data.error || 'Failed to clear cookies');
     }

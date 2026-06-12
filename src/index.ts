@@ -18,6 +18,8 @@ import { playlistInputSchema, handlePlaylist } from './tools/playlist.js';
 import { downloadInputSchema, handleDownload } from './tools/download.js';
 import { clipInputSchema, handleClip } from './tools/clip.js';
 import { highlightReelInputSchema, handleHighlightReel } from './tools/highlight-reel.js';
+import { loadCookies, saveCookies, deleteCookies } from './lib/cookies.js';
+import { resetInstance } from './lib/innertube.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8'));
@@ -152,6 +154,45 @@ async function main() {
         if (!res.headersSent) {
           res.status(500).send('Error handling request');
         }
+      }
+    });
+
+    // Cookie management routes
+    app.get('/api/cookies/status', async (req, res) => {
+      try {
+        const cookies = loadCookies();
+        res.json({
+          configured: cookies !== null && cookies.length > 0,
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.post('/api/cookies', async (req, res) => {
+      try {
+        const { cookieString } = req.body;
+        if (!cookieString) {
+          res.status(400).json({ error: 'Missing cookieString parameter' });
+          return;
+        }
+
+        saveCookies(cookieString);
+        resetInstance(); // Rebuild Innertube with the new cookies
+
+        res.json({ success: true, message: 'Cookies saved successfully' });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.delete('/api/cookies', async (req, res) => {
+      try {
+        deleteCookies();
+        resetInstance(); // Reset Innertube to anonymous state
+        res.json({ success: true, message: 'Cookies deleted successfully' });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
     });
 

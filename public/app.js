@@ -10,6 +10,7 @@ let chatHistory = [];
 // Initialize application on load
 window.addEventListener('DOMContentLoaded', () => {
   loadSettings();
+  checkCookiesStatus();
   lucide.createIcons();
   
   // Connect forms
@@ -36,6 +37,10 @@ function switchTab(tabName) {
   });
   const activeSection = document.getElementById(`tab-${tabName}`);
   if (activeSection) activeSection.classList.remove('hidden');
+  
+  if (tabName === 'settings') {
+    checkCookiesStatus();
+  }
   
   lucide.createIcons();
 }
@@ -1039,5 +1044,86 @@ async function triggerClipping() {
     btn.disabled = false;
     statusDiv.className = "text-xs py-2.5 px-3.5 rounded-xl border border-red-500/20 bg-red-950/20 text-red-400";
     statusDiv.innerText = "Error: " + err.message;
+  }
+}
+
+// --- YouTube Authentication Cookies Management ---
+
+async function checkCookiesStatus() {
+  const badge = document.getElementById('cookies-status-badge');
+  const clearBtn = document.getElementById('clear-cookies-btn');
+  if (!badge) return;
+
+  try {
+    const response = await fetch('/api/cookies/status');
+    const data = await response.json();
+    
+    if (data.configured) {
+      badge.className = "flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20";
+      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span><span>Configured</span>`;
+      if (clearBtn) clearBtn.disabled = false;
+    } else {
+      badge.className = "flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-400";
+      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span><span>Not Configured</span>`;
+      if (clearBtn) clearBtn.disabled = true;
+    }
+  } catch (err) {
+    console.error('Failed to fetch cookies status:', err);
+    badge.className = "flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20";
+    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span><span>Error</span>`;
+  }
+}
+
+async function saveCookiesToServer() {
+  const input = document.getElementById('cookies-input');
+  if (!input) return;
+  const cookieString = input.value.trim();
+  
+  if (!cookieString) {
+    alert('Please paste a valid cookies string or Netscape cookie file content.');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/cookies', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cookieString })
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to save cookies');
+    }
+    
+    alert('Cookies saved and configured successfully on the server!');
+    input.value = '';
+    await checkCookiesStatus();
+  } catch (err) {
+    alert('Error saving cookies: ' + err.message);
+  }
+}
+
+async function clearCookies() {
+  if (!confirm('Are you sure you want to clear the cookies on the server? This will delete the session cookies file.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/cookies', {
+      method: 'DELETE'
+    });
+    
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to clear cookies');
+    }
+    
+    alert('Cookies cleared successfully!');
+    await checkCookiesStatus();
+  } catch (err) {
+    alert('Error clearing cookies: ' + err.message);
   }
 }

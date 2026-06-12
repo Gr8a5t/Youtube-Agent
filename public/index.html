@@ -441,6 +441,44 @@
             </button>
           </div>
         </div>
+
+        <!-- YouTube Authentication Cookies Card -->
+        <div class="p-6 rounded-3xl border border-zinc-800/80 bg-zinc-950/50 backdrop-blur-md space-y-6">
+          <div class="space-y-1">
+            <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+              <i data-lucide="cookie" class="w-5 h-5 text-red-500"></i>
+              <span>YouTube Authentication Cookies</span>
+            </h3>
+            <p class="text-xs text-zinc-400">
+              Bypass "Sign in to confirm you're not a bot" and age-restriction verification screens on YouTube.
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <label for="cookies-input" class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Netscape Cookies / Cookie String</label>
+              <div id="cookies-status-badge" class="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+                <span>Checking...</span>
+              </div>
+            </div>
+            <textarea id="cookies-input" rows="4" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com&#10;OR paste raw cookie header string here..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3 px-4 text-xs font-mono text-zinc-300 focus:outline-none focus:border-red-500/50 resize-y"></textarea>
+            <p class="text-xs text-zinc-500">
+              Export your YouTube session cookies in Netscape format using a browser extension like <strong>Get cookies.txt LOCALLY</strong>, then paste the contents here.
+            </p>
+          </div>
+
+          <div class="pt-2 flex justify-between items-center">
+            <button onclick="clearCookies()" id="clear-cookies-btn" class="text-zinc-500 hover:text-zinc-300 text-sm font-semibold flex items-center space-x-1.5 transition-colors disabled:opacity-50" disabled>
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+              <span>Clear Cookies</span>
+            </button>
+            
+            <button onclick="saveCookiesToServer()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all">
+              Save Cookies
+            </button>
+          </div>
+        </div>
       </section>
 
     </main>

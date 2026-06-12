@@ -87,6 +87,9 @@ async function main() {
         // Serve static dashboard files
         const publicPath = resolve(__dirname, '..', 'public');
         app.use(express.static(publicPath));
+        app.get('/', (req, res) => {
+            res.sendFile(join(publicPath, 'index.html'));
+        });
         // SSE endpoint for establishing the stream
         app.get('/sse', async (req, res) => {
             try {

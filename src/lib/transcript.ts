@@ -39,6 +39,8 @@ function decodeHtmlEntities(text: string): string {
 
 const YOUTUBE_API_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
 
+import { getInstance } from './innertube.js';
+
 export async function getTranscript(
   videoId: string,
   language?: string,
@@ -47,62 +49,30 @@ export async function getTranscript(
     const config = getConfig();
     const lang = language ?? config.transcript.defaultLanguage;
     
-    const cookieString = loadCookies();
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    };
-    if (cookieString) {
-        headers['Cookie'] = cookieString;
-        console.log(`[Transcript Cookie Check] Successfully parsed cookies. Length: ${cookieString.length}`);
-    } else {
-        console.warn(`[Transcript Cookie Check] No cookies parsed. Making unauthenticated request.`);
-    }
+    // 1. Use the global, authenticated Innertube instance which natively handles poTokens
+    const { yt } = await getInstance();
     
-    // 1. Fetch player endpoint using Android client spoofing (bypasses poToken blocks)
-    const playerEndpoint = `https://www.youtube.com/youtubei/v1/player?key=${YOUTUBE_API_KEY}`;
-    const playerBody = {
-        context: {
-            client: {
-                clientName: 'ANDROID',
-                clientVersion: '20.10.38',
-            },
-        },
-        videoId: videoId,
-    };
+    // We use the WEB client because youtubei.js can generate valid poTokens for it
+    const info = await yt.getInfo(videoId, { client: 'WEB' });
+    const isPlayableOk = info.playability_status?.status === 'OK';
     
-    const playerRes = await fetch(playerEndpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(playerBody)
-    });
-    
-    if (!playerRes.ok) {
-        const errText = await playerRes.text().catch(() => 'unreadable');
-        console.error('[YOUTUBE PLAYER API ERROR BODY]', errText);
-        return { error: `YouTube player API returned status ${playerRes.status}. Body: ${errText.substring(0, 200)}` };
-    }
-    
-    const playerJson = await playerRes.json();
-    const tracklist = playerJson?.captions?.playerCaptionsTracklistRenderer;
-    const tracks = tracklist?.captionTracks;
-    const isPlayableOk = playerJson?.playabilityStatus?.status === 'OK';
-    
-    if (!tracks || tracks.length === 0) {
+    if (!info.captions || !info.captions.caption_tracks || info.captions.caption_tracks.length === 0) {
         if (!isPlayableOk) {
-             console.error('[YOUTUBE PLAYABILITY STATUS]', JSON.stringify(playerJson?.playabilityStatus));
+             console.error('[YOUTUBE PLAYABILITY STATUS]', JSON.stringify(info.playability_status));
              return { error: `Video ${videoId} is unavailable — it may have been removed or is private.` };
         }
         return { error: `Transcripts are disabled or unavailable for video ${videoId}.` };
     }
     
+    const tracks = info.captions.caption_tracks;
+    
     // 2. Find preferred language
-    let selectedTrack = tracks.find((t: any) => t.languageCode === lang);
+    let selectedTrack = tracks.find((t: any) => t.language_code === lang);
     if (!selectedTrack) {
         selectedTrack = tracks[0]; // fallback to first
     }
     
-    let transcriptURL = selectedTrack.baseUrl || selectedTrack.url;
+    let transcriptURL = selectedTrack.base_url;
     if (!transcriptURL) {
         return { error: `Could not extract transcript URL for video ${videoId}.` };
     }
@@ -110,18 +80,8 @@ export async function getTranscript(
     // Strip format parameter if it exists to ensure we get the pure XML that matches the signature
     transcriptURL = transcriptURL.replace(/&fmt=[^&]+/, '');
     
-    // 3. Fetch the signed transcript XML
-    const fetchHeaders: Record<string, string> = {
-        'User-Agent': headers['User-Agent']
-    };
-    if (cookieString) {
-        fetchHeaders['Cookie'] = cookieString;
-    }
-    if (lang) {
-        fetchHeaders['Accept-Language'] = lang;
-    }
-    
-    const transcriptResponse = await fetch(transcriptURL, { headers: fetchHeaders });
+    // 3. Fetch the signed transcript XML (no headers needed since the signature is valid)
+    const transcriptResponse = await fetch(transcriptURL);
     
     if (!transcriptResponse.ok) {
         const errText = await transcriptResponse.text().catch(() => 'unreadable');
@@ -169,7 +129,7 @@ export async function getTranscript(
     return {
       segments: finalSegments,
       fullText,
-      language: selectedTrack.languageCode || lang,
+      language: selectedTrack.language_code || lang,
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -45,8 +45,15 @@ export function loadCookies() {
     let envCookies = process.env.YOUTUBE_COOKIES;
     if (envCookies) {
         try {
-            // Fix literal escaped newlines and tabs from CI/CD platforms like Render
-            envCookies = envCookies.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+            // Check if the string is Base64 encoded (no spaces, no tabs, ends with = or alphanumeric)
+            if (!envCookies.includes(' ') && !envCookies.includes('\t') && /^[A-Za-z0-9+/=]+$/.test(envCookies) && envCookies.length > 100) {
+                console.log('[Cookies] Detected Base64 encoded YOUTUBE_COOKIES. Decoding...');
+                envCookies = Buffer.from(envCookies, 'base64').toString('utf-8');
+            }
+            else {
+                // Fix literal escaped newlines and tabs from CI/CD platforms like Render
+                envCookies = envCookies.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+            }
             const localCookies = join(process.cwd(), 'cookies.txt');
             let shouldSync = false;
             if (!existsSync(localCookies)) {

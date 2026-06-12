@@ -968,6 +968,9 @@ async function triggerClipping() {
   statusDiv.classList.remove('hidden');
   btn.disabled = true;
   
+  const aspectRatio = document.getElementById('clip-aspect-ratio').value;
+  const highlightReel = document.getElementById('clip-combine-reel').checked;
+
   try {
     const response = await fetch('/api/clip', {
       method: 'POST',
@@ -977,7 +980,8 @@ async function triggerClipping() {
       body: JSON.stringify({
         videoId: selectedVideo.id,
         clips,
-        highlightReel: true,
+        highlightReel,
+        aspectRatio,
         force: true
       })
     });

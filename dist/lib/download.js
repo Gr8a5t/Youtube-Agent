@@ -230,12 +230,39 @@ export async function downloadToTemp(videoId, quality = 'best', force = false) {
     return { tempPath: tempMuxed, title, durationSeconds };
 }
 // --- Clip ---
-export async function clipVideo(inputPath, outputPath, startSeconds, endSeconds, accurate = false) {
+export async function clipVideo(inputPath, outputPath, startSeconds, endSeconds, accurate = false, aspectRatio = 'original') {
     const startStr = startSeconds.toString();
     const endStr = endSeconds.toString();
-    const args = accurate
-        ? ['-i', inputPath, '-ss', startStr, '-to', endStr, '-avoid_negative_ts', 'make_zero', '-y', outputPath]
-        : ['-ss', startStr, '-to', endStr, '-i', inputPath, '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-y', outputPath];
+    let args;
+    if (aspectRatio === '9:16-crop') {
+        args = [
+            '-i', inputPath,
+            '-ss', startStr,
+            '-to', endStr,
+            '-vf', 'crop=ih*9/16:ih',
+            '-c:v', 'libx264',
+            '-c:a', 'aac',
+            '-avoid_negative_ts', 'make_zero',
+            '-y', outputPath
+        ];
+    }
+    else if (aspectRatio === '9:16-blur') {
+        args = [
+            '-i', inputPath,
+            '-ss', startStr,
+            '-to', endStr,
+            '-filter_complex', '[0:v]split=2[bg][fg];[bg]scale=720:1280,boxblur=20:10[bg_blurred];[fg]scale=720:-1[fg_scaled];[bg_blurred][fg_scaled]overlay=0:(H-h)/2',
+            '-c:v', 'libx264',
+            '-c:a', 'aac',
+            '-avoid_negative_ts', 'make_zero',
+            '-y', outputPath
+        ];
+    }
+    else {
+        args = accurate
+            ? ['-i', inputPath, '-ss', startStr, '-to', endStr, '-avoid_negative_ts', 'make_zero', '-y', outputPath]
+            : ['-ss', startStr, '-to', endStr, '-i', inputPath, '-c', 'copy', '-avoid_negative_ts', 'make_zero', '-y', outputPath];
+    }
     await runFfmpeg(args);
 }
 export async function createClips(videoId, clips, options = {}) {
@@ -261,7 +288,7 @@ export async function createClips(videoId, clips, options = {}) {
             }
             const label = clip.label ?? `clip${i + 1}`;
             const outputFile = join(outputDir, `${safeName} - ${label}.mp4`);
-            await clipVideo(tempPath, outputFile, startSec, endSec, options.accurate ?? false);
+            await clipVideo(tempPath, outputFile, startSec, endSec, options.accurate ?? false, options.aspectRatio ?? 'original');
             const fileSize = formatFileSize(statSync(outputFile).size);
             const clipDuration = formatSeconds(endSec - startSec);
             clipResults.push({

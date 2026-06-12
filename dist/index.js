@@ -205,7 +205,7 @@ async function main() {
         });
         app.post('/api/clip', async (req, res) => {
             try {
-                const { videoId, clips, accurate, force, quality, highlightReel } = req.body;
+                const { videoId, clips, accurate, force, quality, highlightReel, aspectRatio } = req.body;
                 if (!videoId || !clips || !Array.isArray(clips)) {
                     res.status(400).json({ error: 'Missing required parameters "videoId" and "clips"' });
                     return;
@@ -218,6 +218,7 @@ async function main() {
                     force,
                     quality,
                     highlightReel,
+                    aspectRatio,
                     outputDir: downloadsDir,
                 });
                 const parsed = JSON.parse(result.content[0].text);

@@ -55,12 +55,13 @@ export declare function downloadToTemp(videoId: string, quality?: DownloadQualit
     title: string;
     durationSeconds: number;
 } | DurationWarning>;
-export declare function clipVideo(inputPath: string, outputPath: string, startSeconds: number, endSeconds: number, accurate?: boolean): Promise<void>;
+export declare function clipVideo(inputPath: string, outputPath: string, startSeconds: number, endSeconds: number, accurate?: boolean, aspectRatio?: 'original' | '9:16-crop' | '9:16-blur'): Promise<void>;
 export declare function createClips(videoId: string, clips: ClipDefinition[], options?: {
     outputDir?: string;
     quality?: DownloadQuality;
     accurate?: boolean;
     force?: boolean;
     highlightReel?: boolean;
+    aspectRatio?: 'original' | '9:16-crop' | '9:16-blur';
 }): Promise<HighlightReelResult | ClipResult[] | DurationWarning>;
 //# sourceMappingURL=download.d.ts.map

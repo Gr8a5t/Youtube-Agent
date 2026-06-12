@@ -18,6 +18,8 @@ export const clipInputSchema = {
         .describe('Bypass the duration guard for long videos'),
     highlightReel: z.boolean().optional()
         .describe('Combine all clips into a single highlight-reel video (default: true). Set to false for individual clips only.'),
+    aspectRatio: z.enum(['original', '9:16-crop', '9:16-blur']).optional()
+        .describe('Output aspect ratio format: "original" (default), "9:16-crop" (vertical center crop), or "9:16-blur" (vertical fit with blurred background)'),
 };
 export async function handleClip(args) {
     const config = getConfig();
@@ -27,6 +29,7 @@ export async function handleClip(args) {
         accurate: args.accurate,
         force: args.force,
         highlightReel: args.highlightReel,
+        aspectRatio: args.aspectRatio,
     });
     return {
         content: [{

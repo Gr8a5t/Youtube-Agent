@@ -20,6 +20,7 @@ export declare const clipInputSchema: {
     accurate: z.ZodOptional<z.ZodBoolean>;
     force: z.ZodOptional<z.ZodBoolean>;
     highlightReel: z.ZodOptional<z.ZodBoolean>;
+    aspectRatio: z.ZodOptional<z.ZodEnum<["original", "9:16-crop", "9:16-blur"]>>;
 };
 interface ClipArgs {
     videoId: string;
@@ -33,6 +34,7 @@ interface ClipArgs {
     accurate?: boolean;
     force?: boolean;
     highlightReel?: boolean;
+    aspectRatio?: 'original' | '9:16-crop' | '9:16-blur';
 }
 export declare function handleClip(args: ClipArgs): Promise<{
     content: {

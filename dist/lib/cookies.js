@@ -39,9 +39,11 @@ function parseNetscapeCookies(content) {
 }
 export function loadCookies() {
     // 0. Try direct YOUTUBE_COOKIES environment variable content
-    const envCookies = process.env.YOUTUBE_COOKIES;
+    let envCookies = process.env.YOUTUBE_COOKIES;
     if (envCookies) {
         try {
+            // Fix literal escaped newlines from CI/CD platforms like Render
+            envCookies = envCookies.replace(/\\n/g, '\n');
             const localCookies = join(process.cwd(), 'cookies.txt');
             let shouldSync = false;
             if (!existsSync(localCookies)) {

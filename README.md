@@ -1,136 +1,88 @@
-<div align="center">
+# 🎬 YouTube AI Research Dashboard & Clipper
 
-# YouTube for AI Agents
+A premium, high-fidelity web workspace and AI Research Assistant that lets you search YouTube videos, generate instant transcript summaries, chat with transcripts, and clip/download highlight reels in seconds.
 
-### Claude watches YouTube so you don't have to
-
-Ask *"what's the best video on…?"* and Claude finds it, watches it, and reports back. Drop a long podcast in chat — get the highlights in seconds. Cut clips, build reels, pull transcripts — all without opening a YouTube tab.
-
-[![Discord](https://img.shields.io/badge/Join_the_community-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/babcVNJBet)
-
-[Quick Start](#quick-start) · [Try it](#try-it) · [Discord](https://discord.gg/babcVNJBet) · [Demo](#demo)
-
-</div>
+Built with direct browser integration for **Google Gemini API** (using privacy-first local storage for your API key) and a backend powered by **Model Context Protocol (MCP)** and **FFmpeg**.
 
 ---
 
-## Demo
+## 🌟 Key Features
 
-[![Watch the demo](https://img.youtube.com/vi/KbCC7vaeAHY/maxresdefault.jpg)](https://youtu.be/KbCC7vaeAHY)
+* **Interactive Q&A Chat:** Chat with any video transcript directly. Ask questions about specific sections, and navigate directly to those moments.
+* **One-Click Video Clipping (Reels/Shorts):**
+  * **Range Clipping:** Timestamps like `[00:03-00:10]` in the summary or chat get an instant **Clip** button next to them. Clicking it switches to the Clipper tab and pre-fills the segment.
+  * **Point Clipping:** Single timestamps like `[00:46]` get a **Clip** button that automatically creates a 10-second highlight starting at that moment.
+* **Fully Responsive Stack Layout:** The workspace looks beautiful and works seamlessly across desktops, laptops, tablets, and mobile phones.
+* **Custom Model Override:** Choose from standard Gemini models (automatically discovered based on your key) or type in any custom model ID (e.g. `gemini-1.5-flash-latest`).
+* **Privacy First:** Your Gemini API key is stored locally in your browser's `localStorage` and is never sent to or stored on the server.
+* **Multi-Clip Highlights:** Define multiple segments, label them, and let the backend combine them into a single highlight reel using FFmpeg.
 
-> Click the image to watch the 1-minute walkthrough.
+---
 
-## Quick Start
+## 🚀 One-Click Deploy to Render
 
-**1. Install the plugin** — inside Claude Code, run:
+We've pre-configured this repository with a `render.yaml` Blueprint file, making deployment completely automatic:
 
-```
-/plugin marketplace add JCodesMore/jcodesmore-plugins
-/plugin install youtube@jcodesmore-plugins
-```
+1. Push this code to your GitHub repository (e.g. `Gr8a5t/Youtube-Agent`).
+2. Go to the [Render Dashboard](https://dashboard.render.com/).
+3. Click **New +** -> **Blueprint**.
+4. Select your repository `Youtube-Agent`.
+5. Render will automatically parse the blueprint and provision a web service on the **Free Tier**.
+6. Click **Apply**. Once built, open the generated `.onrender.com` URL to launch your dashboard!
 
-Then fully **restart Claude Code** (quit the app and reopen).
+*Note: No environment variables are needed on Render. You can paste your Gemini API Key directly inside the dashboard's **Settings** tab in your browser.*
 
-**2. That's it.** No API key, no signup. Just start asking.
+---
 
-> *Optional:* run `/youtube:setup` to sign in with your own YouTube cookies for personalized search and recommendations.
+## 💻 Local Setup & Development
 
-## Try it
+Run the dashboard and server locally on your machine:
 
-Talk to Claude like a friend:
+### Prerequisites
+* Node.js (version 18 or higher)
+* FFmpeg (installed and added to your system PATH for video clipping)
 
-- *"Watch this video and give me the recipe — I don't want to scroll the comments."*
-- *"Find me five highly-rated videos on Roman history."*
-- *"What are this channel's best uploads? Watch the top three and summarize."*
-- *"Pull the actionable takeaways from this 90-minute interview."*
-- *"Cut a 30-second clip starting at 2:15 from this video."*
-- *"Combine these three cooking videos into a single highlight reel."*
+### Installation
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Build the project:
+   ```bash
+   npm run build
+   ```
+3. Run the server locally:
+   ```bash
+   npm run dev
+   ```
+   Open `http://localhost:3000` in your browser to access the dashboard.
 
-The agent searches, watches, and reports back — no scrubbing, no scrolling.
+---
 
-## What's inside
+## 🔌 Model Context Protocol (MCP) Integration
 
-**Nine smart tools** wrapped in **two skills** and **one agent** — search, watch, clip, and reel without leaving the chat.
+This application is also a fully compliant MCP server! You can plug it into clients like **Claude Code**, **Cursor**, or **Gemini CLI**.
 
-| Capability | Try saying |
-|---|---|
-| Search videos, channels, playlists | *"find me the top videos on…"* |
-| Watch and summarize | *"watch this and tell me what matters"* |
-| Browse a channel or playlist | *"what's worth watching from this YouTuber?"* |
-| Pull a transcript | *"grab the transcript around the 5-minute mark"* |
-| Download video or audio | *"save the audio of this video"* |
-| Cut a clip | *"clip 2:15 to 2:45 from this video"* |
-| Build a highlight reel | *"combine these clips into one reel"* |
-
-## Community
-
-[**Discord**](https://discord.gg/babcVNJBet) — chat, help, show-and-tell · [**Issues**](https://github.com/JCodesMore/youtube-for-ai-agents/issues) — bugs & feature requests · [**Contribute**](CONTRIBUTING.md) · [**More plugins**](https://github.com/JCodesMore/jcodesmore-plugins)
-
-<details>
-<summary><b>Personalized results (optional)</b></summary>
-
-By default, search runs anonymously — no login required. If you want personalized recommendations and search results, run `/youtube:setup` and follow the cookie-extraction wizard. Cookies stay on your machine in the plugin data directory; nothing is uploaded anywhere.
-
-</details>
-
-<details>
-<summary><b>Use it in Cursor, Codex, OpenCode, or Gemini CLI</b></summary>
-
-The MCP server is portable. Per-platform setup guides:
-
-- [Cursor](docs/README.cursor.md)
-- [Codex](docs/README.codex.md)
-- [OpenCode](docs/README.opencode.md)
-- [Gemini CLI](docs/README.gemini-cli.md)
-
-</details>
-
-<details>
-<summary><b>Advanced install (without the marketplace)</b></summary>
-
-Clone and build it yourself:
-
-```bash
-git clone https://github.com/JCodesMore/youtube-for-ai-agents.git
-cd youtube-for-ai-agents
-npm install
-npm run build
-```
-
-Or wire the published npm package directly into any MCP-compatible client:
-
+To connect a client to the local server via Stdio:
 ```json
 {
   "mcpServers": {
-    "youtube": {
-      "command": "npx",
-      "args": ["-y", "@jcodesmore/youtube-for-ai-agents"]
+    "youtube-agent": {
+      "command": "node",
+      "args": ["/absolute/path/to/Youtube-Agent/dist/index.js"]
     }
   }
 }
 ```
 
-**Requirements:** Node.js ≥ 18.
-
-</details>
-
-<details>
-<summary><b>Built on</b></summary>
-
-- [Model Context Protocol SDK](https://modelcontextprotocol.io/) — tool exposure to Claude
-- [youtubei.js](https://github.com/LuanRT/YouTube.js) — YouTube InnerTube client (no API key needed)
-- [youtube-transcript-plus](https://www.npmjs.com/package/youtube-transcript-plus) — transcript fetching
-- [ytdlp-nodejs](https://www.npmjs.com/package/ytdlp-nodejs) — video and audio downloads
-- [Zod](https://zod.dev/) — schema validation
-
-</details>
-
-## License
-
-[Apache License 2.0](LICENSE) — © 2026 JCodesMore
-
-> Uses [youtubei.js](https://github.com/LuanRT/YouTube.js), an unofficial YouTube client. Not affiliated with, endorsed by, or associated with YouTube or Google.
+Or connect via SSE (Server-Sent Events) by running the server with the `--sse` flag or configuring the `PORT` environment variable.
 
 ---
 
-*Part of [jcodesmore-plugins](https://github.com/JCodesMore/jcodesmore-plugins).*
+## 📜 License & Attributions
+
+Licensed under the [Apache License 2.0](LICENSE). 
+
+*This is a fork of [JCodesMore/youtube-for-ai-agents](https://github.com/JCodesMore/youtube-for-ai-agents).*
+
+> Uses [youtubei.js](https://github.com/LuanRT/YouTube.js), an unofficial YouTube client. Not affiliated with, endorsed by, or associated with YouTube or Google.

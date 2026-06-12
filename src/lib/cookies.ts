@@ -74,6 +74,9 @@ export function loadCookies(): string | null {
     const content = readFileSync(cookiePath, 'utf8');
     const parsed = JSON.parse(content);
     if (typeof parsed.cookie_string === 'string' && parsed.cookie_string.length > 0) {
+      if (parsed.cookie_string.includes('\t')) {
+        return parseNetscapeCookies(parsed.cookie_string);
+      }
       return parsed.cookie_string;
     }
     return null;
@@ -83,17 +86,42 @@ export function loadCookies(): string | null {
 }
 
 export function deleteCookies(): boolean {
-  const cookiePath = getCookiePath();
-  if (!existsSync(cookiePath)) return false;
-  try {
-    unlinkSync(cookiePath);
-    return true;
-  } catch {
-    return false;
+  let deleted = false;
+  
+  const localCookies = join(process.cwd(), 'cookies.txt');
+  if (existsSync(localCookies)) {
+    try {
+      unlinkSync(localCookies);
+      deleted = true;
+    } catch {}
   }
+  
+  const dotCookies = join(process.cwd(), '.cookies.txt');
+  if (existsSync(dotCookies)) {
+    try {
+      unlinkSync(dotCookies);
+      deleted = true;
+    } catch {}
+  }
+
+  const cookiePath = getCookiePath();
+  if (existsSync(cookiePath)) {
+    try {
+      unlinkSync(cookiePath);
+      deleted = true;
+    } catch {}
+  }
+  
+  return deleted;
 }
 
 export function saveCookies(cookieString: string): void {
+  // If it's Netscape format, write it to cookies.txt as well
+  if (cookieString.includes('\t') || cookieString.includes('# Netscape')) {
+    const localCookies = join(process.cwd(), 'cookies.txt');
+    writeFileSync(localCookies, cookieString, 'utf8');
+  }
+
   const cookiePath = getCookiePath();
   const dir = dirname(cookiePath);
   if (!existsSync(dir)) {

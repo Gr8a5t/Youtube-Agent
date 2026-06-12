@@ -1,5 +1,6 @@
 import { fetchTranscript } from 'youtube-transcript-plus';
 import { getConfig } from './user-config.js';
+import { loadCookies } from './cookies.js';
 
 export interface TranscriptSegment {
   text: string;
@@ -44,7 +45,48 @@ export async function getTranscript(
   try {
     const config = getConfig();
     const lang = language ?? config.transcript.defaultLanguage;
-    const rawSegments = await fetchTranscript(videoId, { lang });
+    
+    const cookieString = loadCookies();
+    const fetchOptions: any = { lang };
+    
+    if (cookieString) {
+      const headers = {
+        'Cookie': cookieString,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      };
+      
+      fetchOptions.videoFetch = async ({ url, lang: fetchLang }: any) => {
+        return fetch(url, {
+          headers: {
+            ...headers,
+            ...(fetchLang && { 'Accept-Language': fetchLang }),
+          }
+        });
+      };
+      
+      fetchOptions.playerFetch = async ({ url, method, body, headers: reqHeaders, lang: fetchLang }: any) => {
+        return fetch(url, {
+          method,
+          headers: {
+            ...headers,
+            ...reqHeaders,
+            ...(fetchLang && { 'Accept-Language': fetchLang }),
+          },
+          body
+        });
+      };
+      
+      fetchOptions.transcriptFetch = async ({ url, lang: fetchLang }: any) => {
+        return fetch(url, {
+          headers: {
+            ...headers,
+            ...(fetchLang && { 'Accept-Language': fetchLang }),
+          }
+        });
+      };
+    }
+
+    const rawSegments = await fetchTranscript(videoId, fetchOptions);
 
     const segments: TranscriptSegment[] = rawSegments
       .slice(0, config.transcript.maxSegments)

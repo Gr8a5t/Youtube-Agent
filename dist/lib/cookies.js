@@ -21,7 +21,52 @@ export function hasCookies() {
         return false;
     }
 }
+function parseNetscapeCookies(content) {
+    const lines = content.split('\n');
+    const cookiePairs = [];
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#'))
+            continue;
+        const parts = trimmed.split('\t');
+        if (parts.length >= 7) {
+            const name = parts[5];
+            const value = parts[6].replace(/\r$/, '');
+            cookiePairs.push(`${name}=${value}`);
+        }
+    }
+    return cookiePairs.join('; ');
+}
 export function loadCookies() {
+    // 1. Try env var path
+    const envPath = process.env.YOUTUBE_COOKIES_PATH;
+    if (envPath && existsSync(envPath)) {
+        try {
+            const content = readFileSync(envPath, 'utf8');
+            if (content.includes('\t')) {
+                return parseNetscapeCookies(content);
+            }
+            const parsed = JSON.parse(content);
+            return parsed.cookie_string ?? null;
+        }
+        catch { }
+    }
+    // 2. Try cookies.txt
+    const localCookies = join(process.cwd(), 'cookies.txt');
+    if (existsSync(localCookies)) {
+        try {
+            return parseNetscapeCookies(readFileSync(localCookies, 'utf8'));
+        }
+        catch { }
+    }
+    // 3. Try .cookies.txt
+    const dotCookies = join(process.cwd(), '.cookies.txt');
+    if (existsSync(dotCookies)) {
+        try {
+            return parseNetscapeCookies(readFileSync(dotCookies, 'utf8'));
+        }
+        catch { }
+    }
     const cookiePath = getCookiePath();
     if (!existsSync(cookiePath))
         return null;

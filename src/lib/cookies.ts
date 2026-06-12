@@ -39,6 +39,40 @@ function parseNetscapeCookies(content: string): string {
 }
 
 export function loadCookies(): string | null {
+  // 0. Try direct YOUTUBE_COOKIES environment variable content
+  const envCookies = process.env.YOUTUBE_COOKIES;
+  if (envCookies) {
+    try {
+      const localCookies = join(process.cwd(), 'cookies.txt');
+      let shouldSync = false;
+      if (!existsSync(localCookies)) {
+        shouldSync = true;
+      } else {
+        const diskContent = readFileSync(localCookies, 'utf8');
+        if (diskContent.trim() !== envCookies.trim()) {
+          shouldSync = true;
+        }
+      }
+      
+      if (shouldSync) {
+        console.log('[Cookies] Syncing YOUTUBE_COOKIES env var content to disk...');
+        saveCookies(envCookies);
+      }
+      
+      if (envCookies.includes('\t') || envCookies.includes('# Netscape')) {
+        return parseNetscapeCookies(envCookies);
+      }
+      try {
+        const parsed = JSON.parse(envCookies);
+        return parsed.cookie_string ?? envCookies;
+      } catch {
+        return envCookies;
+      }
+    } catch (e) {
+      console.error('[Cookies] Error syncing env cookies to disk:', e);
+    }
+  }
+
   // 1. Try env var path
   const envPath = process.env.YOUTUBE_COOKIES_PATH;
   if (envPath && existsSync(envPath)) {

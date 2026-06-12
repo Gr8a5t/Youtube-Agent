@@ -54,6 +54,9 @@ export async function getTranscript(
     };
     if (cookieString) {
         headers['Cookie'] = cookieString;
+        console.log(`[Transcript Cookie Check] Successfully parsed cookies. Length: ${cookieString.length}`);
+    } else {
+        console.warn(`[Transcript Cookie Check] No cookies parsed. Making unauthenticated request.`);
     }
     
     // 1. Fetch player endpoint using Android client spoofing (bypasses poToken blocks)
@@ -87,6 +90,7 @@ export async function getTranscript(
     
     if (!tracks || tracks.length === 0) {
         if (!isPlayableOk) {
+             console.error('[YOUTUBE PLAYABILITY STATUS]', JSON.stringify(playerJson?.playabilityStatus));
              return { error: `Video ${videoId} is unavailable — it may have been removed or is private.` };
         }
         return { error: `Transcripts are disabled or unavailable for video ${videoId}.` };

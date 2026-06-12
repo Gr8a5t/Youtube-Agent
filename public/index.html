@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube AI Research Agent</title>
+  <!-- Google Fonts: Outfit and Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Outfit', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Custom CSS for rich styling -->
+  <link rel="stylesheet" href="app.css">
+  <!-- Marked.js for rendering markdown summaries -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="h-full bg-[#09090b] text-zinc-100 font-sans antialiased overflow-hidden flex flex-col">
+
+  <!-- Background Decorative Glows -->
+  <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-red-900/10 blur-[120px] pointer-events-none z-0"></div>
+  <div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-900/10 blur-[120px] pointer-events-none z-0"></div>
+
+  <!-- App Header -->
+  <header class="relative border-b border-zinc-800/80 bg-zinc-950/50 backdrop-blur-md px-6 py-4 flex items-center justify-between z-10">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-violet-600 flex items-center justify-center shadow-lg shadow-red-500/10">
+        <i data-lucide="youtube" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-heading font-bold tracking-tight bg-gradient-to-r from-red-500 via-pink-500 to-violet-400 bg-clip-text text-transparent">
+          YouTube AI Research Agent
+        </h1>
+        <p class="text-xs text-zinc-400 font-medium">Powered by Gemini & MCP</p>
+      </div>
+    </div>
+
+    <!-- API Status Badge -->
+    <div id="key-badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full border border-red-500/20 bg-red-950/20 text-red-400 text-xs font-semibold cursor-pointer transition-all hover:bg-red-950/30" onclick="switchTab('settings')">
+      <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse" id="key-status-dot"></span>
+      <span id="key-status-text">Gemini Key Inactive</span>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="flex flex-1 overflow-hidden relative z-10">
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 border-r border-zinc-800/60 bg-zinc-950/40 backdrop-blur-md flex flex-col justify-between p-4">
+      <nav class="space-y-1">
+        <button id="nav-search" onclick="switchTab('search')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 nav-btn active">
+          <i data-lucide="search" class="w-5 h-5"></i>
+          <span>Search YouTube</span>
+        </button>
+        <button id="nav-analyze" onclick="switchTab('analyze')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 nav-btn">
+          <i data-lucide="cpu" class="w-5 h-5"></i>
+          <span>Watch & Analyze</span>
+        </button>
+        <button id="nav-settings" onclick="switchTab('settings')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 nav-btn">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <!-- Connection Footer -->
+      <div class="p-3 rounded-xl border border-zinc-800/40 bg-zinc-900/30 backdrop-blur-sm">
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          <span class="text-xs text-zinc-400 font-medium">MCP Server Connected</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="flex-1 overflow-y-auto bg-zinc-950/10 p-6">
+      
+      <!-- TAB 1: SEARCH YOUTUBE -->
+      <section id="tab-search" class="tab-content space-y-6">
+        <div class="max-w-4xl mx-auto space-y-4">
+          <div class="text-center space-y-2 py-4">
+            <h2 class="text-3xl font-heading font-extrabold tracking-tight text-white sm:text-4xl">
+              Research YouTube Videos
+            </h2>
+            <p class="text-zinc-400 text-sm max-w-xl mx-auto">
+              Search across creators, channels, and playlists. Our agent will help you summarize, extract highlights, and answer questions.
+            </p>
+          </div>
+
+          <!-- Search Bar -->
+          <form id="search-form" onsubmit="handleSearchSubmit(event)" class="relative flex items-center bg-zinc-900/80 border border-zinc-800/80 rounded-2xl p-1.5 focus-within:ring-2 focus-within:ring-red-500/30 focus-within:border-red-500/50 shadow-xl transition-all">
+            <div class="flex items-center pl-3 pointer-events-none text-zinc-400">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </div>
+            <input type="text" id="search-input" placeholder="Search for videos on AI, coding, building startups..." class="w-full bg-transparent border-0 py-3 pl-3 pr-4 text-zinc-100 placeholder-zinc-500 focus:ring-0 focus:outline-none text-sm" required>
+            <button type="submit" class="bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold text-sm px-6 py-3 rounded-xl hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-600/20 active:scale-[0.98] transition-all flex items-center space-x-2">
+              <span>Search</span>
+            </button>
+          </form>
+
+          <!-- Search Filters (Optional) -->
+          <div class="flex flex-wrap items-center gap-3 pt-2 text-xs text-zinc-400 justify-center">
+            <span>Sort by:</span>
+            <select id="filter-sort" class="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-300 focus:outline-none focus:border-red-500/50">
+              <option value="relevance">Relevance</option>
+              <option value="views">Views</option>
+              <option value="date">Upload Date</option>
+              <option value="rating">Rating</option>
+            </select>
+
+            <span>Duration:</span>
+            <select id="filter-duration" class="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-300 focus:outline-none focus:border-red-500/50">
+              <option value="all">Any</option>
+              <option value="short">Short (< 4m)</option>
+              <option value="medium">Medium (4m - 20m)</option>
+              <option value="long">Long (> 20m)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search Results Grid -->
+        <div id="search-loading" class="hidden py-20 flex flex-col items-center justify-center space-y-4">
+          <div class="w-10 h-10 border-4 border-red-500/30 border-t-red-600 rounded-full animate-spin"></div>
+          <p class="text-zinc-400 text-sm animate-pulse">Scanning YouTube for the best results...</p>
+        </div>
+
+        <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- TAB 2: WATCH & ANALYZE -->
+      <section id="tab-analyze" class="tab-content hidden h-full flex flex-col">
+        <!-- Input state when no video is selected -->
+        <div id="no-video-container" class="max-w-md mx-auto my-20 space-y-6 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-400">
+            <i data-lucide="play" class="w-8 h-8"></i>
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-xl font-heading font-semibold text-white">No Video Loaded</h3>
+            <p class="text-zinc-400 text-sm">
+              Paste a YouTube video URL or search above to select a video for deep AI analysis.
+            </p>
+          </div>
+          <form onsubmit="handleDirectUrlSubmit(event)" class="flex gap-2">
+            <input type="url" id="direct-url-input" placeholder="https://www.youtube.com/watch?v=..." class="flex-1 bg-zinc-900/80 border border-zinc-800/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/50 text-zinc-100 placeholder-zinc-500" required>
+            <button type="submit" class="bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-3 rounded-xl text-sm font-semibold transition-all">
+              Load Video
+            </button>
+          </form>
+        </div>
+
+        <!-- Video workspace (Left side Player + Chat, Right side AI Insights) -->
+        <div id="video-workspace" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 lg:h-[calc(100vh-10rem)] lg:min-h-[680px] lg:overflow-hidden h-auto overflow-y-auto pb-8">
+          
+          <!-- Left Column: Player & Chat (5/12 or 6/12 width) -->
+          <div class="lg:col-span-5 flex flex-col space-y-4 h-auto lg:h-full lg:overflow-hidden">
+            <!-- Embedded Player -->
+            <div class="aspect-video w-full rounded-2xl border border-zinc-800/80 overflow-hidden bg-black shadow-lg shadow-black/40">
+              <iframe id="video-iframe" class="w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+
+            <!-- Video Info Card -->
+            <div class="p-4 rounded-2xl border border-zinc-800/60 bg-zinc-950/30 backdrop-blur-sm space-y-1">
+              <h3 id="workspace-video-title" class="font-heading font-semibold text-sm text-white line-clamp-1">Video Title</h3>
+              <p id="workspace-video-channel" class="text-xs text-zinc-400 font-medium">Channel Name</p>
+            </div>
+
+            <!-- Interactive Chat with Video -->
+            <div class="h-[380px] lg:h-auto lg:flex-1 lg:min-h-[280px] flex flex-col border border-zinc-800/60 bg-zinc-950/40 backdrop-blur-md rounded-2xl overflow-hidden">
+              <!-- Chat Header -->
+              <div class="px-4 py-3 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/20">
+                <div class="flex items-center space-x-2">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
+                  </span>
+                  <span class="text-xs font-semibold text-zinc-300">Chat with Video Transcript</span>
+                </div>
+                <button onclick="clearChat()" class="text-zinc-500 hover:text-zinc-300 text-xs flex items-center space-x-1 transition-colors">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <span>Clear</span>
+                </button>
+              </div>
+
+              <!-- Chat Message Log -->
+              <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Welcome system message -->
+                <div class="flex space-x-3 items-start max-w-[85%]">
+                  <div class="w-7 h-7 rounded-lg bg-violet-900/30 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="bot" class="w-4 h-4 text-violet-400"></i>
+                  </div>
+                  <div class="bg-zinc-900/40 border border-zinc-800/60 rounded-2xl px-4 py-2.5 text-sm leading-relaxed text-zinc-300">
+                    Hello! Ask me anything about the contents of this video. I will analyze the full transcript to find the exact details for you.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chat Input Form -->
+              <form id="chat-form" onsubmit="handleChatSubmit(event)" class="p-3 border-t border-zinc-800/80 bg-zinc-900/20 flex gap-2">
+                <input type="text" id="chat-input" placeholder="What does this video say about...?" class="flex-1 bg-zinc-950/60 border border-zinc-800/80 focus:outline-none focus:border-violet-500/50 rounded-xl px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600" required>
+                <button type="submit" class="bg-violet-600 hover:bg-violet-500 text-white p-3 rounded-xl transition-all shadow-md shadow-violet-600/10 flex items-center justify-center">
+                  <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right Column: AI Insights (7/12 width) -->
+          <div class="lg:col-span-7 flex flex-col h-[550px] lg:h-full overflow-hidden border border-zinc-800/60 bg-zinc-950/40 backdrop-blur-md rounded-3xl">
+            <!-- Tabs / Actions Header -->
+            <div class="px-6 py-4 border-b border-zinc-800/80 flex flex-col sm:flex-row gap-4 sm:items-center justify-between bg-zinc-900/10 flex-shrink-0">
+              <div class="flex flex-wrap gap-x-4 gap-y-2">
+                <button id="tab-summary-btn" onclick="switchRightTab('summary')" class="text-sm font-semibold text-white border-b-2 border-red-500 pb-2 relative transition-all">
+                  AI Summary
+                </button>
+                <button id="tab-transcript-btn" onclick="switchRightTab('transcript')" class="text-sm font-semibold text-zinc-400 hover:text-zinc-200 pb-2 relative transition-all">
+                  Interactive Transcript
+                </button>
+                <button id="tab-clipper-btn" onclick="switchRightTab('clipper')" class="text-sm font-semibold text-zinc-400 hover:text-zinc-200 pb-2 relative transition-all">
+                  Download & Clip
+                </button>
+              </div>
+
+              <!-- Action Button -->
+              <button id="action-summarize" onclick="triggerSummary()" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center space-x-2 transition-all shadow-md shadow-red-500/10">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>Generate Summary</span>
+              </button>
+            </div>
+
+            <!-- Tab Content: Summary Pane -->
+            <div id="right-tab-summary" class="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+              <!-- Empty Summary State -->
+              <div id="summary-empty" class="py-20 flex flex-col items-center justify-center text-center space-y-4">
+                <div class="w-12 h-12 rounded-full bg-zinc-900/80 border border-zinc-800/60 flex items-center justify-center text-zinc-500">
+                  <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-zinc-300 font-semibold text-sm">No Summary Available</p>
+                  <p class="text-zinc-500 text-xs max-w-xs">Click the "Generate Summary" button in the top right to download the transcript and request an AI-crafted summary.</p>
+                </div>
+              </div>
+
+              <!-- Generating Summary State -->
+              <div id="summary-loading" class="hidden py-20 flex flex-col items-center justify-center text-center space-y-4">
+                <div class="w-10 h-10 border-4 border-red-500/30 border-t-red-600 rounded-full animate-spin"></div>
+                <div class="space-y-1">
+                  <p class="text-zinc-300 font-semibold text-sm">Fetching Video Transcript...</p>
+                  <p class="text-zinc-500 text-xs" id="summary-progress-text">Contacting YouTube endpoints...</p>
+                </div>
+              </div>
+
+              <!-- Summary Markdown Display -->
+              <article id="summary-content" class="prose prose-invert prose-zinc max-w-none text-zinc-300 hidden">
+                <!-- Rendered Markdown -->
+              </article>
+            </div>
+
+            <!-- Tab Content: Transcript Pane -->
+            <div id="right-tab-transcript" class="flex-1 overflow-y-auto p-6 hidden space-y-4 min-h-0">
+              <!-- Search Transcript -->
+              <div class="relative flex items-center bg-zinc-900/60 border border-zinc-800 rounded-xl p-1 focus-within:border-violet-500/50">
+                <div class="pl-3 text-zinc-500">
+                  <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input type="text" id="transcript-search" oninput="filterTranscript()" placeholder="Search in transcript segments..." class="w-full bg-transparent border-none py-2 px-3 text-sm text-zinc-300 placeholder-zinc-600 focus:ring-0 focus:outline-none">
+              </div>
+
+              <div id="transcript-loading" class="py-10 flex flex-col items-center justify-center space-y-3">
+                <div class="w-8 h-8 border-4 border-violet-500/30 border-t-violet-600 rounded-full animate-spin"></div>
+                <p class="text-zinc-500 text-xs">Loading transcript segments...</p>
+              </div>
+
+              <div id="transcript-empty" class="hidden py-10 text-center text-zinc-500 text-xs">
+                No transcript segments loaded. Load a video or click "Generate Summary" first.
+              </div>
+
+              <!-- Segments List -->
+              <div id="transcript-segments" class="space-y-2.5 hidden">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Tab Content: Clipper Pane -->
+            <div id="right-tab-clipper" class="flex-1 overflow-y-auto p-6 hidden space-y-6 min-h-0">
+              <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider">Download Full Video</h4>
+                <div class="p-4 rounded-2xl border border-zinc-800/80 bg-zinc-900/30 flex flex-wrap gap-3 items-end">
+                  <div class="flex-1 min-w-[150px] space-y-1">
+                    <label class="text-[10px] font-semibold text-zinc-400">Quality</label>
+                    <select id="download-quality" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-3 text-xs text-zinc-300">
+                      <option value="best">Best Quality</option>
+                      <option value="720p">720p</option>
+                      <option value="360p">360p</option>
+                    </select>
+                  </div>
+                  <div class="flex-1 min-w-[150px] space-y-1">
+                    <label class="text-[10px] font-semibold text-zinc-400">Format</label>
+                    <select id="download-format" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-3 text-xs text-zinc-300">
+                      <option value="mp4">MP4 Video</option>
+                      <option value="mp3">MP3 Audio</option>
+                    </select>
+                  </div>
+                  <button id="btn-download-full" onclick="downloadFullVideo()" class="bg-zinc-850 hover:bg-zinc-750 text-white border border-zinc-800 hover:border-zinc-700 font-semibold text-xs px-4 py-2.5 rounded-lg transition-all flex items-center space-x-1.5">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Download</span>
+                  </button>
+                </div>
+                
+                <!-- Full Download Status/Result -->
+                <div id="download-full-status" class="hidden text-xs py-2"></div>
+              </div>
+
+              <div class="border-t border-zinc-800/60 my-6"></div>
+
+              <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider">Extract Custom Clips</h4>
+                
+                <div class="space-y-3" id="clip-definitions-container">
+                  <!-- One clip row by default -->
+                  <div class="clip-row p-4 rounded-2xl border border-zinc-800/80 bg-zinc-900/30 grid grid-cols-1 md:grid-cols-3 gap-3 items-end relative">
+                    <div class="space-y-1">
+                      <label class="text-[10px] font-semibold text-zinc-400">Start Time (e.g. 1:30 or 90)</label>
+                      <input type="text" class="clip-start w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-3 text-xs text-zinc-200" placeholder="0:00" value="0:00">
+                    </div>
+                    <div class="space-y-1">
+                      <label class="text-[10px] font-semibold text-zinc-400">End Time (e.g. 2:15 or 135)</label>
+                      <input type="text" class="clip-end w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-3 text-xs text-zinc-200" placeholder="0:10" value="0:10">
+                    </div>
+                    <div class="space-y-1 flex justify-between items-end gap-2">
+                      <div class="flex-1 space-y-1">
+                        <label class="text-[10px] font-semibold text-zinc-400">Label</label>
+                        <input type="text" class="clip-label w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-3 text-xs text-zinc-200" placeholder="clip1" value="clip1">
+                      </div>
+                      <button onclick="this.closest('.clip-row').remove()" class="text-red-500 hover:text-red-400 p-2 rounded-lg bg-red-950/20 border border-red-500/20 hover:bg-red-950/30 transition-all">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-2">
+                  <button onclick="addClipRow()" class="text-xs font-semibold text-zinc-400 hover:text-zinc-200 flex items-center space-x-1 transition-colors">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Add Another Clip</span>
+                  </button>
+
+                  <button id="btn-clip-generate" onclick="triggerClipping()" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-all shadow-md shadow-red-500/10 flex items-center space-x-2">
+                    <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                    <span>Generate Clip(s)</span>
+                  </button>
+                </div>
+
+                <!-- Clipper Status/Result -->
+                <div id="clipper-status" class="hidden text-xs py-2"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: SETTINGS -->
+      <section id="tab-settings" class="tab-content hidden max-w-2xl mx-auto space-y-8 py-4">
+        <div class="space-y-2">
+          <h2 class="text-2xl font-heading font-bold text-white">AI Engine Configuration</h2>
+          <p class="text-zinc-400 text-sm">
+            Enter your personal Gemini API key. All keys are stored safely inside your browser's local storage and are never sent to external servers.
+          </p>
+        </div>
+
+        <div class="p-6 rounded-3xl border border-zinc-800/80 bg-zinc-950/50 backdrop-blur-md space-y-6">
+          <!-- API Key Input -->
+          <div class="space-y-2">
+            <label for="gemini-key-input" class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Gemini API Key</label>
+            <div class="relative flex items-center">
+              <input type="password" id="gemini-key-input" placeholder="AIzaSy..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 pl-4 pr-12 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-red-500/50">
+              <button onclick="toggleKeyVisibility()" class="absolute right-4 text-zinc-500 hover:text-zinc-300 transition-colors">
+                <i id="key-visibility-icon" data-lucide="eye" class="w-5 h-5"></i>
+              </button>
+            </div>
+            <p class="text-xs text-zinc-500">Get a free key from the <a href="https://aistudio.google.com/" target="_blank" class="text-red-400 hover:underline">Google AI Studio</a>.</p>
+          </div>
+
+          <!-- Model Selection -->
+          <div class="space-y-2">
+            <label for="gemini-model-select" class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Default Model</label>
+            <select id="gemini-model-select" onchange="handleModelSelectChange()" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 px-4 text-sm text-zinc-200 focus:outline-none focus:border-red-500/50">
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recommended - Extremely fast & cost-efficient)</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Best for complex reasoning across huge transcripts)</option>
+              <option value="custom">Custom Model ID...</option>
+            </select>
+          </div>
+
+          <!-- Custom Model ID Input -->
+          <div id="custom-model-container" class="space-y-2 hidden">
+            <label for="gemini-model-custom" class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Custom Model ID</label>
+            <input type="text" id="gemini-model-custom" placeholder="gemini-1.5-flash-latest" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 px-4 text-sm text-zinc-200 focus:outline-none focus:border-red-500/50">
+          </div>
+
+          <div class="pt-4 flex justify-between items-center">
+            <button onclick="testApiKey()" class="text-zinc-400 hover:text-zinc-200 text-sm font-semibold flex items-center space-x-1.5 transition-colors">
+              <i data-lucide="refresh-cw" class="w-4 h-4" id="test-key-spinner"></i>
+              <span>Test Connection</span>
+            </button>
+            
+            <button onclick="saveSettings()" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-semibold text-sm px-6 py-3 rounded-xl shadow-lg shadow-red-600/10 active:scale-[0.98] transition-all">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Custom Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>

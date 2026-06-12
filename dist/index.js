@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { dirname, resolve, join } from 'path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express from 'express';
+import cors from 'cors';
 import { searchInputSchema, handleSearch } from './tools/search.js';
 import { transcriptInputSchema, handleTranscript } from './tools/transcript.js';
 import { videoInfoInputSchema, handleVideoInfo } from './tools/video-info.js';
@@ -74,9 +77,229 @@ server.registerTool('youtube_highlight_reel', {
     inputSchema: highlightReelInputSchema,
     annotations: DOWNLOAD_ANNOTATIONS,
 }, handleHighlightReel);
+const transports = new Map();
 async function main() {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
+    const isSseMode = process.env.PORT || process.argv.includes('--sse');
+    if (isSseMode) {
+        const app = express();
+        app.use(cors());
+        app.use(express.json());
+        // Serve static dashboard files
+        const publicPath = resolve(__dirname, '..', 'public');
+        app.use(express.static(publicPath));
+        // SSE endpoint for establishing the stream
+        app.get('/sse', async (req, res) => {
+            try {
+                const transport = new SSEServerTransport('/messages', res);
+                const sessionId = transport.sessionId;
+                transports.set(sessionId, transport);
+                transport.onclose = () => {
+                    transports.delete(sessionId);
+                };
+                await server.connect(transport);
+            }
+            catch (error) {
+                console.error('Error establishing SSE stream:', error);
+                if (!res.headersSent) {
+                    res.status(500).send('Error establishing SSE stream');
+                }
+            }
+        });
+        // Messages endpoint for receiving client JSON-RPC requests
+        app.post('/messages', async (req, res) => {
+            const sessionId = req.query.sessionId;
+            if (!sessionId) {
+                res.status(400).send('Missing sessionId parameter');
+                return;
+            }
+            const transport = transports.get(sessionId);
+            if (!transport) {
+                res.status(404).send('Session not found');
+                return;
+            }
+            try {
+                await transport.handlePostMessage(req, res, req.body);
+            }
+            catch (error) {
+                console.error('Error handling post message:', error);
+                if (!res.headersSent) {
+                    res.status(500).send('Error handling request');
+                }
+            }
+        });
+        // JSON API for the custom dashboard
+        app.get('/api/search', async (req, res) => {
+            try {
+                const query = req.query.q;
+                const limit = req.query.limit ? parseInt(req.query.limit, 10) : undefined;
+                const type = req.query.type;
+                const uploadDate = req.query.uploadDate;
+                const duration = req.query.duration;
+                const sortBy = req.query.sortBy;
+                if (!query) {
+                    res.status(400).json({ error: 'Missing query parameter "q"' });
+                    return;
+                }
+                const result = await handleSearch({
+                    query,
+                    limit,
+                    type,
+                    uploadDate,
+                    duration,
+                    sortBy,
+                });
+                res.json(JSON.parse(result.content[0].text));
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+        app.get('/api/transcript', async (req, res) => {
+            try {
+                const videoId = req.query.videoId;
+                const language = req.query.language;
+                const format = req.query.format;
+                const startTime = req.query.startTime ? parseFloat(req.query.startTime) : undefined;
+                const endTime = req.query.endTime ? parseFloat(req.query.endTime) : undefined;
+                const maxSegments = req.query.maxSegments ? parseInt(req.query.maxSegments, 10) : undefined;
+                if (!videoId) {
+                    res.status(400).json({ error: 'Missing videoId parameter' });
+                    return;
+                }
+                const result = await handleTranscript({
+                    videoId,
+                    language,
+                    format,
+                    startTime,
+                    endTime,
+                    maxSegments,
+                });
+                if (result.isError) {
+                    res.status(400).json(JSON.parse(result.content[0].text));
+                }
+                else {
+                    res.json(JSON.parse(result.content[0].text));
+                }
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+        app.get('/api/video-info', async (req, res) => {
+            try {
+                const videoId = req.query.videoId;
+                const detail = req.query.detail;
+                if (!videoId) {
+                    res.status(400).json({ error: 'Missing videoId parameter' });
+                    return;
+                }
+                const result = await handleVideoInfo({ videoId, detail });
+                res.json(JSON.parse(result.content[0].text));
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+        app.post('/api/clip', async (req, res) => {
+            try {
+                const { videoId, clips, accurate, force, quality, highlightReel } = req.body;
+                if (!videoId || !clips || !Array.isArray(clips)) {
+                    res.status(400).json({ error: 'Missing required parameters "videoId" and "clips"' });
+                    return;
+                }
+                const downloadsDir = resolve(__dirname, '..', 'public', 'downloads');
+                const result = await handleClip({
+                    videoId,
+                    clips,
+                    accurate,
+                    force,
+                    quality,
+                    highlightReel,
+                    outputDir: downloadsDir,
+                });
+                const parsed = JSON.parse(result.content[0].text);
+                // Map absolute filePaths to relative web paths
+                const makeRelative = (absolutePath) => {
+                    const filename = absolutePath.split('/').pop() || '';
+                    return `/downloads/${encodeURIComponent(filename)}`;
+                };
+                if (parsed.highlightReel) {
+                    parsed.highlightReel.downloadUrl = makeRelative(parsed.highlightReel.filePath);
+                }
+                if (parsed.clips) {
+                    parsed.clips.forEach((c) => {
+                        c.downloadUrl = makeRelative(c.filePath);
+                    });
+                }
+                else if (Array.isArray(parsed)) {
+                    parsed.forEach((c) => {
+                        c.downloadUrl = makeRelative(c.filePath);
+                    });
+                }
+                res.json(parsed);
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+        app.post('/api/download', async (req, res) => {
+            try {
+                const { videoId, quality, type, format, force } = req.body;
+                if (!videoId) {
+                    res.status(400).json({ error: 'Missing required parameter "videoId"' });
+                    return;
+                }
+                // Fetch video title to construct clean filename
+                const infoResult = await handleVideoInfo({ videoId, detail: 'brief' });
+                const info = JSON.parse(infoResult.content[0].text);
+                const title = info.title || 'video';
+                const downloadsDir = resolve(__dirname, '..', 'public', 'downloads');
+                const containerFormat = format || 'mp4';
+                const safeName = title.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200);
+                const outputPath = join(downloadsDir, `${safeName}.${containerFormat}`);
+                const result = await handleDownload({
+                    videoId,
+                    quality,
+                    type,
+                    format: containerFormat,
+                    force,
+                    outputPath,
+                });
+                const parsed = JSON.parse(result.content[0].text);
+                if (parsed.filePath) {
+                    const filename = parsed.filePath.split('/').pop() || '';
+                    parsed.downloadUrl = `/downloads/${encodeURIComponent(filename)}`;
+                }
+                res.json(parsed);
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+        const port = process.env.PORT || 3000;
+        app.listen(port, () => {
+            console.error(`YouTube MCP server and dashboard listening on port ${port} over SSE`);
+        });
+        // Graceful shutdown
+        const shutdown = async () => {
+            console.error('Shutting down server...');
+            for (const [sessionId, transport] of transports.entries()) {
+                try {
+                    await transport.close();
+                }
+                catch (err) {
+                    console.error(`Error closing session ${sessionId}:`, err);
+                }
+            }
+            process.exit(0);
+        };
+        process.on('SIGINT', shutdown);
+        process.on('SIGTERM', shutdown);
+    }
+    else {
+        const transport = new StdioServerTransport();
+        await server.connect(transport);
+    }
 }
 main().catch((error) => {
     console.error('YouTube MCP server failed to start:', error);

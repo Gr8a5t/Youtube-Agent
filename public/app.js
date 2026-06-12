@@ -8,8 +8,8 @@ let currentTranscript = null;
 let chatHistory = [];
 
 // Initialize application on load
-window.addEventListener('DOMContentLoaded', async () => {
-  await loadSettings();
+window.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
   checkCookiesStatus();
   lucide.createIcons();
   
@@ -80,22 +80,9 @@ function switchRightTab(tabName) {
 }
 
 // Load configurations from LocalStorage
-async function loadSettings() {
+function loadSettings() {
   geminiKey = localStorage.getItem('gemini_api_key') || '';
   geminiModel = localStorage.getItem('gemini_model') || 'gemini-1.5-flash';
-  
-  try {
-    const configRes = await fetch('/api/config');
-    if (configRes.ok) {
-      const configData = await configRes.json();
-      if (configData.geminiApiKey) {
-        console.log('[Config] Loaded Gemini API key from server environment.');
-        geminiKey = configData.geminiApiKey;
-      }
-    }
-  } catch (error) {
-    console.error('Error loading server configuration:', error);
-  }
   
   const keyInput = document.getElementById('gemini-key-input');
   const modelSelect = document.getElementById('gemini-model-select');

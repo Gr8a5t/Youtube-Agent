@@ -158,17 +158,6 @@ async function main() {
       }
     });
 
-    // Config endpoint
-    app.get('/api/config', async (req, res) => {
-      try {
-        res.json({
-          geminiApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
-        });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
-      }
-    });
-
     // Cookie management routes
     app.get('/api/cookies/status', async (req, res) => {
       try {

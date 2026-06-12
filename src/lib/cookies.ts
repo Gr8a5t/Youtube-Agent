@@ -28,10 +28,13 @@ function parseNetscapeCookies(content: string): string {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
-    const parts = trimmed.split('\t');
+    let parts = trimmed.split('\t');
+    if (parts.length < 7) {
+      parts = trimmed.split(/\s+/);
+    }
     if (parts.length >= 7) {
       const name = parts[5];
-      const value = parts[6].replace(/\r$/, '');
+      const value = parts.slice(6).join(' ').replace(/\r$/, '');
       cookiePairs.push(`${name}=${value}`);
     }
   }
@@ -43,8 +46,8 @@ export function loadCookies(): string | null {
   let envCookies = process.env.YOUTUBE_COOKIES;
   if (envCookies) {
     try {
-      // Fix literal escaped newlines from CI/CD platforms like Render
-      envCookies = envCookies.replace(/\\n/g, '\n');
+      // Fix literal escaped newlines and tabs from CI/CD platforms like Render
+      envCookies = envCookies.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 
       const localCookies = join(process.cwd(), 'cookies.txt');
       let shouldSync = false;

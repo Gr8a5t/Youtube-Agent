@@ -33,9 +33,10 @@ export async function handleTranscript(args: TranscriptArgs) {
   const result = await getTranscript(args.videoId, args.language);
 
   if ('error' in result) {
+    console.error('[TRANSCRIPT ERROR DETECTED]:', result.error);
     return {
-      content: [{ type: 'text' as const, text: JSON.stringify(result) }],
-      isError: true,
+      content: [{ type: 'text' as const, text: `Backend Transcript Error: ${result.error}` }],
+      // isError: true removed so the LLM reads the actual error
     };
   }
 

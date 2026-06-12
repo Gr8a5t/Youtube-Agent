@@ -75,7 +75,9 @@ export async function getTranscript(
     });
     
     if (!playerRes.ok) {
-        return { error: `YouTube player API returned status ${playerRes.status}` };
+        const errText = await playerRes.text().catch(() => 'unreadable');
+        console.error('[YOUTUBE PLAYER API ERROR BODY]', errText);
+        return { error: `YouTube player API returned status ${playerRes.status}. Body: ${errText.substring(0, 200)}` };
     }
     
     const playerJson = await playerRes.json();
@@ -118,10 +120,12 @@ export async function getTranscript(
     const transcriptResponse = await fetch(transcriptURL, { headers: fetchHeaders });
     
     if (!transcriptResponse.ok) {
+        const errText = await transcriptResponse.text().catch(() => 'unreadable');
+        console.error('[YOUTUBE TRANSCRIPT XML ERROR BODY]', errText);
         if (transcriptResponse.status === 429) {
              return { error: `Rate limited by YouTube. Wait a moment and try again.` };
         }
-        return { error: `Failed to download transcript XML. Status: ${transcriptResponse.status}` };
+        return { error: `Failed to download transcript XML. Status: ${transcriptResponse.status}. Body: ${errText.substring(0, 200)}` };
     }
     
     const transcriptXml = await transcriptResponse.text();

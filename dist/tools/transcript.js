@@ -19,6 +19,7 @@ export const transcriptInputSchema = {
 export async function handleTranscript(args) {
     const result = await getTranscript(args.videoId, args.language);
     if ('error' in result) {
+        console.error('[TRANSCRIPT ERROR DETECTED]:', result.error);
         return {
             content: [{ type: 'text', text: JSON.stringify(result) }],
             isError: true,

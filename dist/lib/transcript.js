@@ -26,7 +26,7 @@ export async function getTranscript(videoId, language) {
         const cookieString = loadCookies();
         const headers = {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': 'com.google.android.youtube/21.03.36 (Linux; U; Android 16; en_US; SM-S908E Build/TP1A.220624.014) gzip'
         };
         if (cookieString) {
             headers['Cookie'] = cookieString;
@@ -48,7 +48,9 @@ export async function getTranscript(videoId, language) {
             body: JSON.stringify(playerBody)
         });
         if (!playerRes.ok) {
-            return { error: `YouTube player API returned status ${playerRes.status}` };
+            const errText = await playerRes.text().catch(() => 'unreadable');
+            console.error('[YOUTUBE PLAYER API ERROR BODY]', errText);
+            return { error: `YouTube player API returned status ${playerRes.status}. Body: ${errText.substring(0, 200)}` };
         }
         const playerJson = await playerRes.json();
         const tracklist = playerJson?.captions?.playerCaptionsTracklistRenderer;
@@ -83,10 +85,12 @@ export async function getTranscript(videoId, language) {
         }
         const transcriptResponse = await fetch(transcriptURL, { headers: fetchHeaders });
         if (!transcriptResponse.ok) {
+            const errText = await transcriptResponse.text().catch(() => 'unreadable');
+            console.error('[YOUTUBE TRANSCRIPT XML ERROR BODY]', errText);
             if (transcriptResponse.status === 429) {
                 return { error: `Rate limited by YouTube. Wait a moment and try again.` };
             }
-            return { error: `Failed to download transcript XML. Status: ${transcriptResponse.status}` };
+            return { error: `Failed to download transcript XML. Status: ${transcriptResponse.status}. Body: ${errText.substring(0, 200)}` };
         }
         const transcriptXml = await transcriptResponse.text();
         if (!transcriptXml || transcriptXml.length === 0) {
